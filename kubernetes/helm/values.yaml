@@ -1,14 +1,22 @@
 # Backend configuration
 backend:
   image: 075120018043.dkr.ecr.us-east-1.amazonaws.com/employee-backend
+<<<<<<< Updated upstream
   tag: be-dev-20260820-071631
+=======
+  tag: be-dev-20260820-073647
+>>>>>>> Stashed changes
   replicas: 2
   port: 5000
 
 # Frontend configuration
 frontend:
   image: 075120018043.dkr.ecr.us-east-1.amazonaws.com/employee-frontend
+<<<<<<< Updated upstream
   tag: fe-dev-20260820-071631
+=======
+  tag: fe-dev-20260820-073647
+>>>>>>> Stashed changes
   replicas: 2
   port: 80
 
