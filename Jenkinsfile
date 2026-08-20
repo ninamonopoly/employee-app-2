@@ -64,7 +64,7 @@ pipeline {
                         git config user.email "jenkins@landmark.dev"
                         git add kubernetes/helm/values.yaml
                         git commit -m "ci: update tags - backend:${BACKEND_TAG} frontend:${FRONTEND_TAG}" || true
-                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/LandmakTechnology/employee-app.git HEAD:main
+                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/ninamonopoly/employee-app-2.git HEAD:main
                     '''
                 }
             }
