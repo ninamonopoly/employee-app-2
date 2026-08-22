@@ -89,14 +89,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: main
           fetch-depth: 0
+          clean: true
 
-      - name: Update image tags in values.yaml
+      - name: Update and push image tags
         run: |
           sed -i "0,/tag: .*/s/tag: .*/tag: ${{ needs.build-and-push.outputs.backend_tag }}/" kubernetes/helm/values.yaml
           sed -i "0,/tag: ${{ needs.build-and-push.outputs.backend_tag }}/!s/tag: .*/tag: ${{ needs.build-and-push.outputs.frontend_tag }}/" kubernetes/helm/values.yaml
-
-      - name: Commit updated tags back to repo
-        run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add kubernetes/helm/values.yaml
