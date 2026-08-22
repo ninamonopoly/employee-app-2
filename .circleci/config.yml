@@ -51,8 +51,13 @@ jobs:
           name: Set image tags
           command: |
             TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
-            echo "export BACKEND_TAG=be-dev-${TIMESTAMP}" >> $BASH_ENV
-            echo "export FRONTEND_TAG=fe-dev-${TIMESTAMP}" >> $BASH_ENV
+            if [ "$CIRCLE_BRANCH" = "main" ]; then
+              echo "export BACKEND_TAG=be-prod-${TIMESTAMP}" >> $BASH_ENV
+              echo "export FRONTEND_TAG=fe-prod-${TIMESTAMP}" >> $BASH_ENV
+            else
+              echo "export BACKEND_TAG=be-dev-${TIMESTAMP}" >> $BASH_ENV
+              echo "export FRONTEND_TAG=fe-dev-${TIMESTAMP}" >> $BASH_ENV
+            fi
       - run:
           name: Build and push backend
           command: |
@@ -64,7 +69,7 @@ jobs:
             docker build -t $ECR_REGISTRY/employee-frontend:$FRONTEND_TAG frontend/
             docker push $ECR_REGISTRY/employee-frontend:$FRONTEND_TAG
       - run:
-          name: Save tags for next job
+          name: Save tags for deploy job
           command: |
             echo $BACKEND_TAG > /tmp/backend_tag
             echo $FRONTEND_TAG > /tmp/frontend_tag
@@ -74,12 +79,11 @@ jobs:
             - backend_tag
             - frontend_tag
 
-  # ── Job 3: Update Helm values ─────────────────────────────────────────────────
-  update-image-tags:
+  # ── Job 3: Deploy to EC2 ──────────────────────────────────────────────────────
+  deploy:
     docker:
       - image: cimg/base:current
     steps:
-      - checkout
       - attach_workspace:
           at: /tmp
       - run:
@@ -87,34 +91,53 @@ jobs:
           command: |
             echo "export BACKEND_TAG=$(cat /tmp/backend_tag)" >> $BASH_ENV
             echo "export FRONTEND_TAG=$(cat /tmp/frontend_tag)" >> $BASH_ENV
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:hrAl3JTCDs3NuMLLkmWbkHuAeCIjPI0zts13USKB1jo"
       - run:
-          name: Update kubernetes/helm/values.yaml
+          name: Deploy to EC2
           command: |
-            sed -i "0,/tag: .*/s/tag: .*/tag: ${BACKEND_TAG}/" kubernetes/helm/values.yaml
-            sed -i "0,/tag: ${BACKEND_TAG}/!s/tag: .*/tag: ${FRONTEND_TAG}/" kubernetes/helm/values.yaml
-      - run:
-          name: Commit and push updated tags
-          command: |
-            git config user.name "circleci"
-            git config user.email "circleci@landmark.dev"
-            git add kubernetes/helm/values.yaml
-            git commit -m "ci: update tags - backend:${BACKEND_TAG} frontend:${FRONTEND_TAG}" || true
-            git push https://${GITHUB_TOKEN}@github.com/ninamonopoly/employee-app-2.git HEAD:main
+            cat > /tmp/deploy.sh \<<SCRIPT
+            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+            docker network inspect employee-network >/dev/null 2>&1 || docker network create employee-network
+            if ! docker ps --format '{{.Names}}' | grep -q '^db$'; then
+              docker rm -f db || true
+              docker run -d --name db --restart unless-stopped --network employee-network -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=employees -v postgres-data:/var/lib/postgresql/data postgres:15
+              until docker exec db pg_isready -U postgres; do sleep 2; done
+            fi
+            docker pull ${ECR_REGISTRY}/employee-backend:${BACKEND_TAG}
+            docker pull ${ECR_REGISTRY}/employee-frontend:${FRONTEND_TAG}
+            docker rm -f backend frontend || true
+            docker run -d --name backend --restart unless-stopped --network employee-network -p 5000:5000 -e DATABASE_URL=postgresql://postgres:postgres@db:5432/employees ${ECR_REGISTRY}/employee-backend:${BACKEND_TAG}
+            docker run -d --name frontend --restart unless-stopped --network employee-network -p 8080:80 ${ECR_REGISTRY}/employee-frontend:${FRONTEND_TAG}
+            docker image prune -f
+            SCRIPT
+            scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa /tmp/deploy.sh $EC2_USER@$EC2_HOST:/tmp/deploy.sh
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $EC2_USER@$EC2_HOST "bash /tmp/deploy.sh"
 
-# ── Workflow ───────────────────────────────────────────────────────────────────
+# ── Workflows ──────────────────────────────────────────────────────────────────
 workflows:
   build-and-deploy:
     jobs:
-      - test
+      - test:
+          context: employee-app2
+
       - build-and-push:
+          context: employee-app2
           requires:
             - test
           filters:
             branches:
-              only: main
-      - update-image-tags:
+              only:
+                - develop
+                - main
+
+      - deploy:
+          context: employee-app2
           requires:
             - build-and-push
           filters:
             branches:
-              only: main
+              only:
+                - develop
+                - main
