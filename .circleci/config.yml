@@ -120,10 +120,10 @@ workflows:
   build-and-deploy:
     jobs:
       - test:
-          context: employee-app2
+          context: employee-app
 
       - build-and-push:
-          context: employee-app2
+          context: employee-app
           requires:
             - test
           filters:
@@ -133,7 +133,7 @@ workflows:
                 - main
 
       - deploy:
-          context: employee-app2
+          context: employee-app
           requires:
             - build-and-push
           filters:
