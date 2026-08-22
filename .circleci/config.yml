@@ -11,7 +11,7 @@ commands:
       - run:
           name: Authenticate Docker to ECR
           command: |
-            aws ecr get-login-password --region $AWS_REGION | \
+            aws ecr get-login-password | \
               docker login --username AWS --password-stdin $ECR_REGISTRY
 
 # ── Jobs ───────────────────────────────────────────────────────────────────────
