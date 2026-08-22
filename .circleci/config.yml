@@ -11,7 +11,7 @@ commands:
       - run:
           name: Authenticate Docker to ECR
           command: |
-            aws ecr get-login-password --region $AWS_REGION | \
+            aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
               docker login --username AWS --password-stdin $ECR_REGISTRY
 
 # ── Jobs ───────────────────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ jobs:
       - aws-cli/setup:
           aws_access_key_id: AWS_ACCESS_KEY_ID
           aws_secret_access_key: AWS_SECRET_ACCESS_KEY
-          region: AWS_REGION
+          region: AWS_DEFAULT_REGION
       - ecr-login
       - run:
           name: Set image tags
@@ -98,7 +98,7 @@ jobs:
           name: Deploy to EC2
           command: |
             cat > /tmp/deploy.sh \<<SCRIPT
-            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+            aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
             docker network inspect employee-network >/dev/null 2>&1 || docker network create employee-network
             if ! docker ps --format '{{.Names}}' | grep -q '^db$'; then
               docker rm -f db || true
