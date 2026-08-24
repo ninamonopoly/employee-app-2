@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_BACKEND  = 'chafah/employee-backend'
-        DOCKERHUB_FRONTEND = 'chafah/employee-frontend'
+        DOCKERHUB_BACKEND  = 'ninamonopoly/employee-backend'
+        DOCKERHUB_FRONTEND = 'ninamonopoly/employee-frontend'
         IMAGE_TAG          = "build-${BUILD_NUMBER}"
     }
 
