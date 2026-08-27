@@ -14,13 +14,12 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
-                    python3 -m venv venv
-                    venv/bin/pip install -r backend/requirements.txt
-                    venv/bin/pip install pytest
+                    pip3 install -r backend/requirements.txt
+                    cd backend
                     DATABASE_URL=sqlite:///test.db \
                     AWS_REGION=us-east-1 \
                     S3_BUCKET=test-bucket \
-                    venv/bin/pytest backend/ -v --junitxml=backend/test-results/results.xml
+                    python3 -m pytest -v --junitxml=test-results/results.xml
                 '''
             }
             post {
