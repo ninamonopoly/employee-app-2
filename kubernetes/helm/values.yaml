@@ -2,9 +2,9 @@
 backend:
   image: 075120018043.dkr.ecr.us-east-1.amazonaws.com/employee-backend
 <<<<<<< Updated upstream
-  tag: be-dev-20260822-053810
+  tag: be-dev-20260827-213618
 =======
-  tag: fe-dev-20260822-053810
+  tag: fe-dev-20260827-213618
 >>>>>>> Stashed changes
   replicas: 2
   port: 5000
@@ -13,9 +13,9 @@ backend:
 frontend:
   image: 075120018043.dkr.ecr.us-east-1.amazonaws.com/employee-frontend
 <<<<<<< Updated upstream
-  tag: fe-dev-20260822-053810
+  tag: fe-dev-20260827-213618
 =======
-  tag: fe-dev-20260822-053810
+  tag: fe-dev-20260827-213618
 >>>>>>> Stashed changes
   replicas: 2
   port: 80
